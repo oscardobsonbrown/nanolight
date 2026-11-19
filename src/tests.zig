@@ -24,6 +24,8 @@ test {
     _ = @import("script_commands.zig");
     _ = @import("script_run.zig");
     _ = @import("tests_ext.zig");
+    _ = @import("notes_store.zig");
+    if (@import("builtin").os.tag == .macos) _ = @import("notes_markdown.zig");
     _ = @import("tests_prefs.zig");
     _ = @import("tests_files.zig");
     _ = @import("row_window.zig");

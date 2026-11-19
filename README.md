@@ -21,6 +21,10 @@ Apps, math, Google, Grok, X and Raycast extensions: one keystroke away. Native Z
 - **Raycast extensions**: extensions from the [Raycast Store's repository](https://github.com/raycast/extensions) (MIT) run in the panel: their lists, details and forms, their actions on ⌘K. Choose **Install Raycast Extension…** to search the store. They are React and TypeScript, so they need [Node.js](https://nodejs.org) 20 or later on your computer; Nanolight brings none, and runs them through its own version of `@raycast/api` ([raycast/README.md](raycast/README.md)). AI, OAuth and the menu bar aren't supported.
 - **Raycast script commands** ([raycast/script-commands](https://github.com/raycast/script-commands), MIT): any script with `@raycast.*` comments, dropped in the Script Commands folder, is a row. Nanolight runs it itself, no Node needed: its arguments as a form, its output as it prints (`fullOutput`), its last line (`compact`), or nothing (`silent`).
 - **Settings in the panel**: ⌘, (Ctrl+, on a PC), the gear in the footer, or type "settings".
+- **Sticky Notes** (Mac): choose **New Sticky Note** or **Browse Sticky Notes** in the launcher or menu bar. Each note is a resizable window that stays above other apps. Markdown formats directly in the editor. Drafts save automatically and open windows return when Nanolight starts. Close an edited note to choose Save, Discard or Cancel. Press ⌘S to save without closing.
+  Start a line with `[]`, `[ ]`, `-[]`, or `-[ ]` to add a checkbox. Click it or press ⌘Return on its line to toggle it.
+  Use `* ` to start a bullet list. Press Return to continue a checklist, bullet list, or numbered list. Press Return on an empty item to end the list.
+  Type `---` on its own line to insert a divider.
 - **⌘1–⌘9** run a row at once; ↑ ↓ and ⌃N ⌃P move.
 - On the Mac it lives in the menu bar: no Dock icon, and nothing drawn while it's idle. **Show in Menu Bar** in Settings hides the icon; Settings stays a ⌘, away in the panel.
 

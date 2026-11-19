@@ -133,6 +133,11 @@ fn fill(l: *Live, ix: *apps.Index, env: *const std.process.Environ.Map) void {
     // shipped); script commands everywhere.
     if (l.runner.node != null) raycast.scan(ix, l.app.gpa);
     sc.scan(ix, l.app.gpa);
+    if (@import("builtin").os.tag == .macos and l.notes != null) {
+        const sticky = @import("notes_mac.zig");
+        ix.addIn("New Sticky Note", sticky.new_path, "Sticky Notes") catch {};
+        ix.addIn("Browse Sticky Notes", sticky.library_path, "Sticky Notes") catch {};
+    }
     ix.sort();
     ix.load(l.kv);
 }

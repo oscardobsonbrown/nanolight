@@ -29,6 +29,7 @@ const ClickThrough = if (mac) @import("clickthrough.zig").ClickThrough else @imp
 const Recorder = if (mac) @import("recorder.zig").Recorder else @import("pc_stubs.zig").Recorder;
 const account = @import("account.zig");
 const rc = @import("raycast_live.zig");
+const sticky = if (mac) @import("notes_mac.zig") else struct {};
 const Settings = @import("settings.zig").Settings;
 const suggest_key = "nanolight.suggest";
 /// "1": Return opens searches in the browser (issue #10).
@@ -88,6 +89,7 @@ pub const Live = struct {
     /// Raycast script commands, run by Nanolight itself (script_run.zig).
     scripts: @import("script_run.zig").Runner = undefined,
     env: ?*const std.process.Environ.Map = null,
+    notes: if (mac) ?sticky.Notes else void = if (mac) null else {},
     /// The next `hide` is skipped: a command just took the panel.
     keep_open: bool = false,
 
@@ -99,6 +101,15 @@ pub const Live = struct {
 
     fn open(ctx: *anyopaque, target: []const u8) void {
         const l: *Live = @ptrCast(@alignCast(ctx));
+        if (mac) if (l.notes) |*notes| {
+            const new_note = std.mem.eql(u8, target, sticky.new_path);
+            if (new_note or std.mem.eql(u8, target, sticky.library_path)) {
+                l.s.query.clear();
+                hide(l);
+                if (new_note) notes.new() else notes.browse();
+                return;
+            }
+        };
         if (apps.isUrl(target)) {
             _ = nanoui.shell.openUrl(target);
         } else if (rc.isCommand(target)) {
@@ -300,6 +311,8 @@ pub const Live = struct {
         t.setMenu("Nanolight", &.{
             .{ .label = "Settings…", .accelerator = "Cmd+,", .click = .of(l, Live.menuSettings) },
             .{ .label = "Open Nanolight", .click = .of(l, Live.menuShow) },
+            .{ .label = "New Sticky Note", .click = .of(l, Live.menuNewNote) },
+            .{ .label = "Browse Sticky Notes", .click = .of(l, Live.menuBrowseNotes) },
             .{ .label = "Welcome…", .click = .of(l, Live.welcome) },
             .{ .label = "Google Suggestions", .kind = .checkbox, .checked = l.s.suggest_on, .click = .of(l, Live.toggleSuggest) },
             .separator,
@@ -309,6 +322,14 @@ pub const Live = struct {
             .{ .label = label, .disabled = l.updater == null, .click = .of(l, Live.updateNow) },
             .{ .label = "Quit Nanolight", .role = .quit },
         }) catch {};
+    }
+
+    fn menuNewNote(l: *Live, _: *nanoui.menu.Item) void {
+        if (mac) if (l.notes) |*notes| notes.new();
+    }
+
+    fn menuBrowseNotes(l: *Live, _: *nanoui.menu.Item) void {
+        if (mac) if (l.notes) |*notes| notes.browse();
     }
 
     fn updateNow(l: *Live, _: *nanoui.menu.Item) void {
@@ -551,7 +572,9 @@ pub fn main(init: std.process.Init) !void {
     // `--version`: what the updater asks a downloaded copy.
     var arena: std.heap.ArenaAllocator = .init(init.gpa);
     defer arena.deinit();
+    var browse_notes = false;
     for (try init.minimal.args.toSlice(arena.allocator())) |arg| {
+        if (mac and std.mem.eql(u8, arg, "--notes")) browse_notes = true;
         if (std.mem.eql(u8, arg, "--version")) {
             var out: [64]u8 = undefined;
             var w = std.Io.File.stdout().writer(init.io, &out);
@@ -607,6 +630,11 @@ pub fn main(init: std.process.Init) !void {
     // they're this machine's).
     rc.init(&live, init.environ_map);
     defer rc.deinit(&live);
+    if (mac) live.notes = sticky.Notes.init(init.gpa, app.io, init.environ_map) catch |err| blk: {
+        std.log.err("Could not initialize sticky notes: {s}", .{@errorName(err)});
+        break :blk null;
+    };
+    defer if (mac) if (live.notes) |*notes| notes.deinit();
     rc.rescan(&live);
     // The newest launch is the one that stays; it hears `--toggle` (single.zig).
     if (single.claim(.{ .ctx = &live, .func = Live.command }) > 0) std.log.info("nanolight: asked an older copy to quit", .{});
@@ -644,6 +672,13 @@ pub fn main(init: std.process.Init) !void {
     live.acct = .{ .gpa = init.gpa, .kv = kv, .hooks = live.accountHooks() };
     live.acct.?.load();
     live.menu();
+    if (mac) if (live.notes) |*notes| {
+        notes.restore();
+        if (browse_notes) {
+            notes.browse();
+            return app.run();
+        }
+    };
     // Restarted by an automatic update: quietly, the panel saying so the
     // next time it opens. Otherwise launching shows the panel.
     var note_buf: [64]u8 = undefined;

@@ -8,6 +8,7 @@ const nanoui = @import("nanoui");
 const objc = nanoui.objc;
 const view = @import("view.zig");
 const Preview = @import("preview.zig").Preview;
+const popover_material = @import("popover_material_mac.zig");
 
 /// The system's glass under the panel, which the window's views keep.
 var glass: ?objc.Object = null;
@@ -165,11 +166,7 @@ fn backdrop(w: *nanoui.Window, radius: f64, height: f32) ?objc.Object {
     const pool = objc.Pool.push();
     defer pool.pop();
     const b = objc.msg(objc.CGRect, surface.nsview, "bounds", .{});
-    const v = objc.msg(objc.Object, objc.alloc("NSVisualEffectView"), "initWithFrame:", .{b});
-    // Popover: light or dark with the system, as the panel's colors are.
-    objc.msg(void, v, "setMaterial:", .{@as(objc.NSInteger, 6)});
-    objc.msg(void, v, "setBlendingMode:", .{@as(objc.NSInteger, 0)}); // behind the window
-    objc.msg(void, v, "setState:", .{@as(objc.NSInteger, 1)}); // always active
+    const v = popover_material.create(b);
     // Rounded as the panel is.
     objc.msg(void, v, "setWantsLayer:", .{objc.YES});
     if (objc.msg(?objc.Object, v, "layer", .{})) |layer| {
