@@ -36,4 +36,4 @@ gh variable set RELEASE_ENABLED --repo "$repo" --body true
 gh workflow run release.yml --repo "$repo" --ref main
 ```
 
-After **Release** passes, download `nanolight-macos-arm64.dmg` from [the latest release](https://github.com/oscardobsonbrown/nanolight/releases/latest). Open it and drag Nanolight to Applications.
+After **Release** passes, download `nanolight-macos-arm64.dmg` from [the latest release](https://github.com/oscardobsonbrown/nanolight/releases/latest). Open it and drag Nanolight to Applications. On first launch, macOS can show its standard confirmation for an app downloaded from the internet.
