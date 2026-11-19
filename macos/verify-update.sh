@@ -26,13 +26,14 @@ from=${1:?usage: sh macos/verify-update.sh vOLD vNEW}
 to=${2:?usage: sh macos/verify-update.sh vOLD vNEW}
 from_version=${from#v}
 to_version=${to#v}
-releases=https://github.com/justrach/nanolight/releases/download
+repo=${GITHUB_REPOSITORY:-oscardobsonbrown/nanolight}
+releases=https://github.com/$repo/releases/download
 asset=nanolight-macos-arm64.zip
 app=/Applications/Nanolight.app
 bin="$app/Contents/MacOS/nanolight"
 cache="$HOME/Library/Caches/Nanolight"
 domain=dev.nanoui.nanolight
-team=WWP9DLJ27P
+team=${TEAM_ID:-}
 port=8765
 chord=key:45:6400:110
 shots=${SHOTS:-/tmp/nanolight-shots}
@@ -164,6 +165,10 @@ opened() { # the app a search's Return should have opened
 
 echo "== $to, first launch"
 install "$to"
+if [ -z "$team" ]; then
+    team=$(codesign -dv --verbose=2 "$app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+fi
+printf '%s\n' "$team" | grep -Eq '^[A-Z0-9]{10}$' || die "no valid signing team"
 pid=$(launch "$releases/$to")
 see_panels 1 "the welcome is on screen"
 # Past the first update check (20 s), which finds nothing newer.

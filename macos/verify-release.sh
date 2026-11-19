@@ -16,9 +16,9 @@ set -eu
 
 tag=${1:?usage: sh macos/verify-release.sh vX.Y.Z}
 version=${tag#v}
-# The team every release is signed by; the updater refuses any other.
-team=WWP9DLJ27P
-base=${BASE:-https://github.com/justrach/nanolight/releases/download/$tag}
+team=${TEAM_ID:-}
+repo=${GITHUB_REPOSITORY:-oscardobsonbrown/nanolight}
+base=${BASE:-https://github.com/$repo/releases/download/$tag}
 macos_zip=nanolight-macos-arm64.zip
 dmg=nanolight-macos-arm64.dmg
 pc="nanolight-windows-x86_64.zip nanolight-linux-x86_64.tar.gz nanolight-linux-aarch64.tar.gz"
@@ -138,6 +138,10 @@ for f in manifest.json "$dmg" "$dmg.sha256" "$macos_zip" $pc; do
     curl -fsSL --retry 3 -o "$dl/$f" "$base/$f"
 done
 for f in $pc; do curl -fsSL --retry 3 -o "$dl/$f.sha256" "$base/$f.sha256"; done
+if [ -z "$team" ]; then
+    team=$(codesign -dv --verbose=2 "$dl/$dmg" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+fi
+printf '%s\n' "$team" | grep -Eq '^[A-Z0-9]{10}$'
 
 check "manifest names $version" feed_version
 for f in "$macos_zip" $pc; do check "manifest's sha256 of $f" feed_sum "$f"; done

@@ -15,6 +15,9 @@ on:
       from:
         type: string
         required: false
+      team:
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       tag:
@@ -37,12 +40,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15, macos-26]
+        os: [macos-15, macos-26]
     runs-on: ${{ matrix.os }}
-    # GitHub has deprecated macos-14 and will take it away: its failure shows,
-    # but holds up no release. Read it before you ship; 15 and 26 must pass.
-    continue-on-error: ${{ matrix.os == 'macos-14' }}
     timeout-minutes: 30
+    env:
+      TEAM_ID: ${{ inputs.team }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,25 +55,31 @@ jobs:
           TO: ${{ inputs.tag }}
           FROM: ${{ inputs.from }}
         run: |
-          published=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" \
-            -q '.[] | select(.prerelease == false and .draft == false) | .tag_name')
-          to="${TO:-$(echo "$published" | head -1)}"
-          from="${FROM:-$(echo "$published" | grep -vx "$to" | head -1)}"
-          test -n "$to" && test -n "$from"
-          echo "$from -> $to"
-          echo "to=$to" >> "$GITHUB_OUTPUT"
-          echo "from=$from" >> "$GITHUB_OUTPUT"
+          if [ -z "$TEAM_ID" ]; then
+            published=$(gh release list --exclude-drafts --exclude-pre-releases --json tagName \
+              --jq '.[].tagName')
+            TO="${TO:-$(printf '%s\n' "$published" | sed -n '1p')}"
+            FROM="${FROM:-$(printf '%s\n' "$published" | awk -v tag="$TO" 'found {print; exit} $0 == tag {found = 1}')}"
+          fi
+          echo "to=$TO" >> "$GITHUB_OUTPUT"
+          echo "from=$FROM" >> "$GITHUB_OUTPUT"
 
       - name: The published files
-        run: sh macos/verify-release.sh "${{ steps.which.outputs.to }}"
+        if: steps.which.outputs.to != ''
+        env:
+          TO: ${{ steps.which.outputs.to }}
+        run: sh macos/verify-release.sh "$TO"
 
       - name: First launch, update, refusals
+        if: steps.which.outputs.from != ''
         env:
+          FROM: ${{ steps.which.outputs.from }}
+          TO: ${{ steps.which.outputs.to }}
           SHOTS: ${{ runner.temp }}/shots
           # A pull request changes the checks, not the published build they
           # run on: there the typing check reports, and a release must pass it.
           TYPING_EXPECT: ${{ github.event_name == 'pull_request' && 'any' || 'clean' }}
-        run: sh macos/verify-update.sh "${{ steps.which.outputs.from }}" "${{ steps.which.outputs.to }}"
+        run: sh macos/verify-update.sh "$FROM" "$TO"
 
       - uses: actions/upload-artifact@v4
         if: always()

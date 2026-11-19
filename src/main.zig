@@ -654,7 +654,7 @@ pub fn main(init: std.process.Init) !void {
     // A release build checks its GitHub releases; one run from zig-out
     // can't replace itself, and leaves the item off.
     const updater = nanoui.Updater.start(init, .{
-        .repo = "justrach/nanolight",
+        .repo = @import("build_options").update_repo,
         .asset = asset,
         .version = version,
         .name = "Nanolight",

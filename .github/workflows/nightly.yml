@@ -1,0 +1,45 @@
+name: Nightly promotion
+
+on:
+  schedule:
+    - cron: '23 19 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: promote-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  promote:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Promote the tested dev commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dev=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/dev" --jq .object.sha)
+          ahead=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$dev" --jq .ahead_by)
+          if [ "$ahead" -gt 0 ]; then
+            check=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml \
+              --branch dev --commit "$dev" --event push --status success --limit 1 \
+              --json conclusion --jq '.[0].conclusion // ""')
+            if [ "$check" != success ]; then
+              echo "::notice::The dev tip has no passing CI run. Skipping promotion."
+              exit 0
+            fi
+            gh api --method POST "repos/$GITHUB_REPOSITORY/merges" \
+              -f base=main -f head="$dev" -f 'commit_message=Merge dev into main (nightly)' \
+              --silent
+          fi
+
+      - name: Start the main release
+        if: vars.RELEASE_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Changes made by GITHUB_TOKEN do not start push workflows.
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main

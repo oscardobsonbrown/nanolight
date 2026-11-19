@@ -22,6 +22,8 @@ pub fn build(b: *std.Build) void {
     // The version, for `--version` and the updater off the Mac (no bundle there).
     const opts = b.addOptions();
     opts.addOption([]const u8, "version", version);
+    const update_repo = b.option([]const u8, "update-repo", "GitHub repository for app updates") orelse "oscardobsonbrown/nanolight";
+    opts.addOption([]const u8, "update_repo", update_repo);
 
     const exe = b.addExecutable(.{ .name = "nanolight", .root_module = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
