@@ -42,20 +42,20 @@ Syncing goes through your Codegraff account, so [Codegraff's terms](https://code
 
 ## Install
 
-From the [latest release](https://github.com/justrach/nanolight/releases/latest):
+Download Nanolight from [this fork's latest release](https://github.com/oscardobsonbrown/nanolight/releases/latest).
 
 - **Mac**: `nanolight-macos-arm64.dmg`. Open it and drag Nanolight to Applications. macOS 14 or later, Apple silicon.
 - **Windows**: `nanolight-windows-x86_64.zip`. Unzip it anywhere you can write and run `nanolight.exe`. Windows 10 or later.
 - **Linux**: `nanolight-linux-x86_64.tar.gz` (or `aarch64`). Unpack it and run `nanolight`. It needs GTK 3 (or 4) and an X11 session for its key; on Wayland, bind `nanolight --toggle` to a key in your desktop's keyboard settings.
   The panel is dark when gsettings or `$GTK_THEME` says the desktop is. A `~/.config/nanolight/theme.json` can set its colors, corner radius and font instead (`dark`, `background`, `foreground`, `muted`, `accent`, `selection` as `#rrggbb`, `rounding`, `font`); Nanolight reads it when it starts, and uses it while the theme in Settings is System. [`src/linux_theme.zig`](src/linux_theme.zig) has an example.
 
-### Homebrew (Mac)
+### Upstream Homebrew tap (Mac)
 
 ```sh
 brew tap justrach/nanolight https://github.com/justrach/nanolight && brew install --cask justrach/nanolight/nanolight
 ```
 
-This repository is the tap; the cask installs the signed `.dmg` from [Releases](https://github.com/justrach/nanolight/releases/latest), and Nanolight updates itself after that. Use the full `justrach/nanolight/nanolight` name: Homebrew 7 only loads a cask from a third-party tap once you name it (or `brew trust` the tap), so a bare `brew install --cask nanolight` is refused. The cask is [`Casks/nanolight.rb`](Casks/nanolight.rb); after a release, `sh macos/update-cask.sh vX.Y.Z` refreshes it.
+The upstream tap installs builds from [justrach/nanolight](https://github.com/justrach/nanolight/releases/latest). Use the disk image from this fork to install the version with Sticky Notes.
 
 On first run a short welcome picks the key that opens it and says who else holds it. On the Mac that's ⌘Space, ⌥Space, ⌃Space or ⌥⌘Space (any other, such as ⌥X, can be recorded later in Settings; Spotlight gives up ⌘Space in System Settings → Keyboard → Keyboard Shortcuts → Spotlight); on a PC, Alt Space, Ctrl Alt Space, Ctrl Space or Ctrl Shift Space. Releases update themselves from this repository's releases, restarting into the new version while the panel is away.
 
@@ -73,7 +73,7 @@ zig build -Dtarget=x86_64-windows-gnu   # any target from any machine
 cd raycast && npm test              # the Raycast extensions' host
 ```
 
-`macos/package.sh` signs with `$CODESIGN_IDENTITY` and notarizes when notary credentials are set (see the script); otherwise it signs ad hoc. Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds, signs and attaches the release as a prerelease, then checks it end to end before it becomes the latest: `sh macos/verify-release.sh v0.2.7` checks a published release's files, its notarization and that it runs headless (safe on your Mac); `macos/verify-update.sh` launches it for real and updates the release before to it (CI only: it shows windows).
+GitHub Actions builds and verifies releases from `main`. See the [release and signing guide](docs/releasing.md) for branch promotion, the Apple signing credentials, and the first release.
 
 ## How it's made
 
